@@ -460,25 +460,59 @@ bool supported()
   return release.get() >= Version(2, 6, 39);
 }
 
+Future<Version> version()
+{
+  internal::Perf* perf = new internal::Perf({"--version"});
+  Future<string> output = perf->future();
+  spawn(perf, true);
+
+  return output
+    .then([](const string& output) -> Future<Version> {
+      // Trim off the leading 'perf version ' text to convert.
+      return Version::parse(strings::remove(
+        output, "perf version ", strings::PREFIX));
+    });
+};
 
 Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
 {
   hashmap<string, mesos::PerfStatistics> statistics;
 
-  foreach (const string& line, strings::tokenize(output, "\n")) {
-    vector<string> tokens = strings::tokenize(line, PERF_DELIMITER);
-    // Expected format for an output line is either:
-    // value,event          (when sampling pids)
-    // value,event,cgroup   (when sampling a cgroup)
-    // assuming PERF_DELIMITER = ",".
-    if (tokens.size() < 2 || tokens.size() > 3) {
-      return Error("Unexpected perf output at line: " + line);
-    }
+  Version perfVersion = version().get();
 
-    const string value = tokens[0];
-    const string event = internal::normalize(tokens[1]);
-    // Use the special PIDS_KEY when sampling pids.
-    const string cgroup = (tokens.size() == 3 ? tokens[2] : PIDS_KEY);
+  foreach (const string& line, strings::tokenize(output, "\n")) {
+    vector<string> tokens = strings::split(line, PERF_DELIMITER);
+
+    string value, event, cgroup;
+
+    // Fix for perf 4.3
+    if (perfVersion >= Version(4, 0, 0)) {
+      // Optional running time and ratio were introduced in Linux v4.0,
+      // which make the format either:
+      //   value,unit,event,cgroup
+      //   value,unit,event,cgroup,running,ratio
+      if ((tokens.size() == 4) || (tokens.size() == 6)) {
+        value = tokens[0];
+        event = internal::normalize(tokens[2]);
+        cgroup = tokens[3];
+
+      } else {
+        return Error("Unexpected perf output at line: " + line);
+      }
+    } else {
+      // Expected format for an output line is either:
+      // value,event          (when sampling pids)
+      // value,event,cgroup   (when sampling a cgroup)
+      // assuming PERF_DELIMITER = ",".
+      if (tokens.size() < 2 || tokens.size() > 3) {
+        return Error("Unexpected perf output at line: " + line);
+      }
+
+      value = tokens[0];
+      event = internal::normalize(tokens[1]);
+      // Use the special PIDS_KEY when sampling pids.
+      string cgroup = (tokens.size() == 3 ? tokens[2] : PIDS_KEY);
+    }
 
     if (!statistics.contains(cgroup)) {
       statistics.put(cgroup, mesos::PerfStatistics());
