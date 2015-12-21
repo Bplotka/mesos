@@ -518,10 +518,16 @@ Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
       statistics.put(cgroup, mesos::PerfStatistics());
     }
 
+    // Support for CMT:
+    if (event == "intel_cqm/llc_occupancy") {
+      event = "llc_occupancy";
+    }
+
     const google::protobuf::Reflection* reflection =
       statistics[cgroup].GetReflection();
     const google::protobuf::FieldDescriptor* field =
       statistics[cgroup].GetDescriptor()->FindFieldByName(event);
+
     if (!field) {
       return Error("Unexpected perf output at line: " + line);
     }
