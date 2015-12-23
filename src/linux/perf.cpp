@@ -479,10 +479,9 @@ Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
   hashmap<string, mesos::PerfStatistics> statistics;
   LOG(INFO) << "!!! parse perf";
   Version perfVersion = version().get();
-  LOG(INFO) << "!!! parse version" << perfVersion.majorVersion;
+  LOG(INFO) << "!!! parse version " << perfVersion.majorVersion;
   foreach (const string& line, strings::tokenize(output, "\n")) {
     vector<string> tokens = strings::split(line, PERF_DELIMITER);
-    LOG(INFO) << "!!! parse token size" << tokens.size();
     string value, event, cgroup;
 
     // Fix for perf 4.3
@@ -519,8 +518,10 @@ Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
       statistics.put(cgroup, mesos::PerfStatistics());
     }
 
+    // TODO(bplotka): Add generic support for events with '/' in name.
+    // Probably in Mesos 0.26.0 this is fixed.
     // Support for CMT:
-    if (event == "intel_cqm/llc_occupancy") {
+    if (event == "intel_cqm/llc_occupancy/") {
       event = "llc_occupancy";
     }
 
@@ -530,6 +531,7 @@ Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
       statistics[cgroup].GetDescriptor()->FindFieldByName(event);
 
     if (!field) {
+      LOG(INFO) << "!!! parse: Not found PerfStats field for event: " << event;
       return Error("Unexpected perf output at line: " + line);
     }
 
