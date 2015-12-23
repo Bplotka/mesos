@@ -477,9 +477,13 @@ Future<Version> version()
 Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
 {
   hashmap<string, mesos::PerfStatistics> statistics;
-  LOG(INFO) << "!!! parse perf";
+
+  // Version the path, since perf changes output in different versions.
+  // NOTE: This is fixed from 0.25.0, however with bug: In CentOS 7.1, the
+  // default kernel is 3.10. Perf 3.10 has new output but in 0.25.0 is
+  // treated as old one. See dev mail list for details.
   Version perfVersion = version().get();
-  LOG(INFO) << "!!! parse version " << perfVersion.majorVersion;
+
   foreach (const string& line, strings::tokenize(output, "\n")) {
     vector<string> tokens = strings::split(line, PERF_DELIMITER);
     string value, event, cgroup;
@@ -490,14 +494,13 @@ Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
       // which make the format either:
       //   value,unit,event,cgroup
       //   value,unit,event,cgroup,running,ratio
-      LOG(INFO) << "!!! parse proper version";
       if ((tokens.size() == 4) || (tokens.size() == 6)) {
         value = tokens[0];
         event = internal::normalize(tokens[2]);
         cgroup = tokens[3];
 
       } else {
-        return Error("1 Unexpected perf output at line: " + line);
+        return Error("Unexpected perf output at line: " + line);
       }
     } else {
       // Expected format for an output line is either:
@@ -505,7 +508,7 @@ Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
       // value,event,cgroup   (when sampling a cgroup)
       // assuming PERF_DELIMITER = ",".
       if (tokens.size() < 2 || tokens.size() > 3) {
-        return Error("2 Unexpected perf output at line: " + line);
+        return Error("Unexpected perf output at line: " + line);
       }
 
       value = tokens[0];
@@ -519,7 +522,6 @@ Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
     }
 
     // TODO(bplotka): Add generic support for events with '/' in name.
-    // Probably in Mesos 0.26.0 this is fixed.
     // Support for CMT:
     if (event == "intel_cqm/llc_occupancy/") {
       event = "llc_occupancy";
@@ -531,12 +533,11 @@ Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
       statistics[cgroup].GetDescriptor()->FindFieldByName(event);
 
     if (!field) {
-      LOG(INFO) << "!!! parse: Not found PerfStats field for event: " << event;
-      return Error("3 Unexpected perf output at line: " + line);
+      return Error("Unexpected perf output at line: " + line);
     }
 
     if (value == "<not supported>") {
-      LOG(WARNING) << "4 Unsupported perf counter, ignoring: " << line;
+      LOG(WARNING) << "Unsupported perf counter, ignoring: " << line;
       continue;
     }
 
@@ -547,7 +548,7 @@ Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
             (value == "<not counted>") ?  0 : numify<double>(value);
 
           if (number.isError()) {
-            return Error("5 Unable to parse perf value at line: " + line);
+            return Error("Unable to parse perf value at line: " + line);
           }
 
           reflection->SetDouble(&(statistics[cgroup]), field, number.get());
@@ -559,14 +560,14 @@ Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
             (value == "<not counted>") ?  0 : numify<uint64_t>(value);
 
           if (number.isError()) {
-            return Error("6 Unable to parse perf value at line: " + line);
+            return Error("Unable to parse perf value at line: " + line);
           }
 
           reflection->SetUInt64(&(statistics[cgroup]), field, number.get());
           break;
         }
       default:
-        return Error("7 Unsupported perf field type at line: " + line);
+        return Error("Unsupported perf field type at line: " + line);
       }
   }
 
