@@ -805,8 +805,8 @@ message PerfStatistics {
   optional uint64 node_prefetches = 52;
   optional uint64 node_prefetch_misses = 53;
 
-  // Support for cache monitoring technology (CMT)
-  optional uint64 llc_occupancy = 54;
+  // Support for cache monitoring technology (CMT).
+  optional double llc_occupancy = 54;
 }
 
 

@@ -497,7 +497,7 @@ Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
         cgroup = tokens[3];
 
       } else {
-        return Error("Unexpected perf output at line: " + line);
+        return Error("1 Unexpected perf output at line: " + line);
       }
     } else {
       // Expected format for an output line is either:
@@ -505,7 +505,7 @@ Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
       // value,event,cgroup   (when sampling a cgroup)
       // assuming PERF_DELIMITER = ",".
       if (tokens.size() < 2 || tokens.size() > 3) {
-        return Error("Unexpected perf output at line: " + line);
+        return Error("2 Unexpected perf output at line: " + line);
       }
 
       value = tokens[0];
@@ -532,11 +532,11 @@ Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
 
     if (!field) {
       LOG(INFO) << "!!! parse: Not found PerfStats field for event: " << event;
-      return Error("Unexpected perf output at line: " + line);
+      return Error("3 Unexpected perf output at line: " + line);
     }
 
     if (value == "<not supported>") {
-      LOG(WARNING) << "Unsupported perf counter, ignoring: " << line;
+      LOG(WARNING) << "4 Unsupported perf counter, ignoring: " << line;
       continue;
     }
 
@@ -547,7 +547,7 @@ Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
             (value == "<not counted>") ?  0 : numify<double>(value);
 
           if (number.isError()) {
-            return Error("Unable to parse perf value at line: " + line);
+            return Error("5 Unable to parse perf value at line: " + line);
           }
 
           reflection->SetDouble(&(statistics[cgroup]), field, number.get());
@@ -559,14 +559,14 @@ Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
             (value == "<not counted>") ?  0 : numify<uint64_t>(value);
 
           if (number.isError()) {
-            return Error("Unable to parse perf value at line: " + line);
+            return Error("6 Unable to parse perf value at line: " + line);
           }
 
           reflection->SetUInt64(&(statistics[cgroup]), field, number.get());
           break;
         }
       default:
-        return Error("Unsupported perf field type at line: " + line);
+        return Error("7 Unsupported perf field type at line: " + line);
       }
   }
 
