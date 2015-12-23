@@ -477,12 +477,12 @@ Future<Version> version()
 Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
 {
   hashmap<string, mesos::PerfStatistics> statistics;
-
+  LOG(INFO) << "!!! parse perf";
   Version perfVersion = version().get();
-
+  LOG(INFO) << "!!! parse version" << perfVersion.majorVersion;
   foreach (const string& line, strings::tokenize(output, "\n")) {
     vector<string> tokens = strings::split(line, PERF_DELIMITER);
-
+    LOG(INFO) << "!!! parse token size" << tokens.size();
     string value, event, cgroup;
 
     // Fix for perf 4.3
@@ -491,6 +491,7 @@ Try<hashmap<string, mesos::PerfStatistics>> parse(const string& output)
       // which make the format either:
       //   value,unit,event,cgroup
       //   value,unit,event,cgroup,running,ratio
+      LOG(INFO) << "!!! parse proper version";
       if ((tokens.size() == 4) || (tokens.size() == 6)) {
         value = tokens[0];
         event = internal::normalize(tokens[2]);
