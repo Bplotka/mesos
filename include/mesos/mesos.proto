@@ -919,6 +919,11 @@ message PerfStatistics {
   optional uint64 node_store_misses = 51;
   optional uint64 node_prefetches = 52;
   optional uint64 node_prefetch_misses = 53;
+
+  // Kernel PMU event.
+  optional double llc_occupancy = 54;
+
+  // TODO: Add rest of Kernel PMU events here.
 }
 
 

@@ -64,9 +64,14 @@ namespace internal {
 
 // Normalize a perf event name. After normalization the event name
 // should match an event field in the PerfStatistics protobuf.
+// NOTE: It removes prefix ended with `/`.
 inline string normalize(const string& s)
 {
   string lower = strings::lower(s);
+  size_t index = lower.find('/');
+  if (index != string::npos) {
+    lower = lower.substr(index, lower.size());
+  }
   return strings::replace(lower, "-", "_");
 }
 
