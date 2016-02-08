@@ -72,6 +72,8 @@ inline string normalize(const string& s)
   if (index != string::npos) {
     lower = lower.substr(index, lower.size());
   }
+  lower = strings::replace(lower, "/", "");
+
   return strings::replace(lower, "-", "_");
 }
 
